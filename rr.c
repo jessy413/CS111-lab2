@@ -152,6 +152,8 @@ int main(int argc, char *argv[])
   // sort the processes by arrival time
   bool compare(struct process *p1, struct process *p2)
   {
+	  if(p1->arrival_time==p2->arrival_time)
+		  return p1->pid > p2->pid;
 	  return p1->arrival_time > p2->arrival_time;
   }
 
@@ -161,8 +163,16 @@ int main(int argc, char *argv[])
   {
 	  printf("Average waiting time: 0.00\n");
 	  printf("Average response time: 0.00\n");
+	  //return 0;
   }
-  TAILQ_INSERT_TAIL(&list,&data[0],pointers);
+  u32 atime = data[0].arrival_time;
+  u32 pos = 0;
+  while(pos<size && data[pos].arrival_time==atime)
+  { 
+  	TAILQ_INSERT_TAIL(&list,&data[pos],pointers);
+	pos++;
+	//printf("same\n");
+  }
   /*for(u32 i = 0; i<size; i++)
   {
 	  TAILQ_INSERT_TAIL(&list,&data[i],pointers);
@@ -174,7 +184,7 @@ int main(int argc, char *argv[])
   struct process *current;
   u32 t = 0;
   u32 done = 0;
-  u32 pos = 1;
+
   //printf("size: %d\n", size);
   while(!TAILQ_EMPTY(&list) && done<size)
   {
@@ -206,13 +216,14 @@ int main(int argc, char *argv[])
 		current->remaining_time--;
 		time--;
 		t++;
-		// TODO: duplicate arrival time
-		if(pos<size && data[pos].arrival_time==t)
+		// TODO: duplicated arrival time
+		while(pos<size && data[pos].arrival_time==t)
 		{
 			//printf("arrived:%d time:%d\n", data[pos].pid,t);
 			TAILQ_INSERT_TAIL(&list,&data[pos],pointers);
 			pos++;
 		}
+		//t++;
 	}
 	if(current->remaining_time==0)
 	{
