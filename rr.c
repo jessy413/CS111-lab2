@@ -124,7 +124,6 @@ void init_processes(const char *path,
     (*process_data)[i].pid = next_int(&data, data_end);
     (*process_data)[i].arrival_time = next_int(&data, data_end);
     (*process_data)[i].burst_time = next_int(&data, data_end);
-    (*process_data)[i].remaining_time = (*process_data)[i].burst_time;
   }
   
   munmap((void *)data, size);
@@ -149,15 +148,6 @@ int main(int argc, char *argv[])
   u32 total_response_time = 0;
 
   /* Your code here */
-  // sort the processes by arrival time
-  bool compare(struct process *p1, struct process *p2)
-  {
-	  if(p1->arrival_time==p2->arrival_time)
-		  return p1->pid > p2->pid;
-	  return p1->arrival_time > p2->arrival_time;
-  }
-
-  qsort(data,size,sizeof(struct process),compare);
 
   // if no processes, print and return
   if(size==0)
@@ -166,22 +156,34 @@ int main(int argc, char *argv[])
 	  printf("Average response time: 0.00\n");
 	  return 0;
   }
-  u32 atime = data[0].arrival_time;
-  u32 pos = 0;
-  while(pos<size && data[pos].arrival_time==atime)
-  { 
-  	TAILQ_INSERT_TAIL(&list,&data[pos],pointers);
-	pos++;
-  }
-
- 
+  
   struct process *current;
-  u32 t = 0;
+  u32 t = data[0].arrival_time;
   u32 done = 0;
-
-  while(!TAILQ_EMPTY(&list) && done<size)
+  //find the earliest arrival time
+  //set remaining time to burst time
+  for(u32 i = 0; i<size; i++)
   {
-	
+	if(data[i].arrival_time<t)
+		t = data[i].arrival_time;
+	data[i].remaining_time = data[i].burst_time;
+  }
+  for(u32 i = 0; i<size; i++)
+  {
+	if(data[i].arrival_time==t)
+		TAILQ_INSERT_TAIL(&list,&data[i],pointers);
+  }
+  while(done<size)
+  {
+	while(TAILQ_EMPTY(&list))
+	{
+		t++;
+		for(u32 i = 0; i<size; i++)
+		{
+			if(data[i].arrival_time == t)
+				TAILQ_INSERT_TAIL(&list,&data[i],pointers);
+		}
+	}
 	current = TAILQ_FIRST(&list);
 	TAILQ_REMOVE(&list,current,pointers);
 	if(current->remaining_time == 0)
@@ -189,8 +191,7 @@ int main(int argc, char *argv[])
 		TAILQ_INSERT_TAIL(&list,current,pointers);
 		continue;
 	}
-	if(current->arrival_time > t)
-		t = current->arrival_time;
+
 	if(current->start==false)
 	{
 		current->start_exec_time = t;
@@ -205,10 +206,10 @@ int main(int argc, char *argv[])
 		current->remaining_time--;
 		time--;
 		t++;
-		while(pos<size && data[pos].arrival_time==t)
+		for(u32 i = 0; i<size;i++)
 		{
-			TAILQ_INSERT_TAIL(&list,&data[pos],pointers);
-			pos++;
+			if(data[i].arrival_time==t)
+				TAILQ_INSERT_TAIL(&list,&data[i],pointers);
 		}
 	}
 	if(current->remaining_time==0)
