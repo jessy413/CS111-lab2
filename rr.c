@@ -158,23 +158,20 @@ int main(int argc, char *argv[])
   }
   
   struct process *current;
-  u32 t = data[0].arrival_time;
+  u32 t = 0;
   u32 done = 0;
-  //find the earliest arrival time
-  //set remaining time to burst time
-  for(u32 i = 0; i<size; i++)
-  {
-	if(data[i].arrival_time<t)
-		t = data[i].arrival_time;
-	data[i].remaining_time = data[i].burst_time;
-  }
+  
   for(u32 i = 0; i<size; i++)
   {
 	if(data[i].arrival_time==t)
+	{
 		TAILQ_INSERT_TAIL(&list,&data[i],pointers);
+	}
+	data[i].remaining_time = data[i].burst_time;
   }
   while(done<size)
   {
+
 	while(TAILQ_EMPTY(&list))
 	{
 		t++;
@@ -186,11 +183,6 @@ int main(int argc, char *argv[])
 	}
 	current = TAILQ_FIRST(&list);
 	TAILQ_REMOVE(&list,current,pointers);
-	if(current->remaining_time == 0)
-	{
-		TAILQ_INSERT_TAIL(&list,current,pointers);
-		continue;
-	}
 
 	if(current->start==false)
 	{
@@ -201,11 +193,13 @@ int main(int argc, char *argv[])
 	u32 time = quantum_length;
 	if(current->remaining_time < quantum_length)
 		time = current->remaining_time;
+
 	while(time>0)
 	{
 		current->remaining_time--;
 		time--;
 		t++;
+		
 		for(u32 i = 0; i<size;i++)
 		{
 			if(data[i].arrival_time==t)
@@ -216,22 +210,14 @@ int main(int argc, char *argv[])
 	{
 		current->waiting_time = t-current->arrival_time-current->burst_time;
 		done++;
+		total_waiting_time += current->waiting_time;
+		total_response_time += current->response_time;
 	}
-
-	TAILQ_INSERT_TAIL(&list, current,pointers);
+	else
+		TAILQ_INSERT_TAIL(&list, current,pointers);
 
   }
 
-  
-  // for each process
-  // add waiting_time and response time to total
-  struct process *current_process;
-  TAILQ_FOREACH(current_process,&list,pointers)
-  {	
-	  
-	  total_waiting_time += current_process->waiting_time;
-	  total_response_time += current_process->response_time;
-  }
   
  /* End of "Your code here" */
 
